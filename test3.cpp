@@ -2,7 +2,9 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_main.h>
 #include <glad/glad.h>
+#include <glm/glm.hpp>
 #include <cstring> 
+#include "shader_c.h"
 
 // Configuración de la ventana y la textura
 const int SCR_WIDTH = 800;
@@ -13,6 +15,8 @@ const int RANGE = 10;
 
 double deltaTime = 0.0; // time between current frame and last frame
 double lastFrame = 0.0;
+
+void setTexture(GLuint& texId);
 
 int main(int argv, char** args) {
     // Inicializar SDL
@@ -27,65 +31,13 @@ int main(int argv, char** args) {
     SDL_GLContext glContext = SDL_GL_CreateContext(window);
     gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
 
-    // Crear Compute Shader
-    const char* shaderSource = R"(
-        #version 430
-        layout(local_size_x = 16, local_size_y = 16) in;
-        layout(rgba8, binding = 0) uniform image2D outputImage;
 
-        uniform int SCR_WIDTH, SCR_HEIGHT;
-        uniform ivec2 lightPos; // Posición de la luz en coordenadas de textura
-        uniform float lightIntensity; // Intensidad de la luz
-        uniform vec4 baseColor; // Color base de la textura
-
-        void main() {
-            ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
-
-            // Calcular la distancia del píxel a la fuente de luz
-            float dist = length(vec2(coords - lightPos));
-
-            // Atenuar la luz basada en la distancia
-            float attenuation = lightIntensity / (1.0 + dist * dist * 0.01);
-
-            vec4 gradientColor = vec4(float(coords.x) / SCR_WIDTH, float(coords.y) / SCR_HEIGHT, 0.5, 1.0);
-
-            float shadow = smoothstep(0.0, 1.0, attenuation);
-
-            // Mezclar el color base con la iluminación
-            vec4 color = baseColor * shadow * gradientColor * attenuation;
-
-            // Guardar el color en la textura
-            imageStore(outputImage, coords, color);
-        }
-    )";
-
-    GLuint computeShader = glCreateShader(GL_COMPUTE_SHADER);
-    glShaderSource(computeShader, 1, &shaderSource, nullptr);
-    glCompileShader(computeShader);
-
-    GLint success;
-    glGetShaderiv(computeShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        char log[512];
-        glGetShaderInfoLog(computeShader, 512, nullptr, log);
-        std::cerr << "Error compiling compute shader: " << log << std::endl;
-        return -1;
-    }
-
-    GLuint computeProgram = glCreateProgram();
-    glAttachShader(computeProgram, computeShader);
-    glLinkProgram(computeProgram);
-    glDeleteShader(computeShader);
+    ComputeShader computeShader("computeShader2.cs");
+    computeShader.use();
 
     // Crear textura OpenGL para el Compute Shader
     GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glBindImageTexture(0, texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+    setTexture(texture);
 
     // Configurar un PBO para transferencias optimizadas
     GLuint pbo;
@@ -128,14 +80,12 @@ int main(int argv, char** args) {
         float lightIntensity = 5.0f; // Ajusta la intensidad
 
         // Ejecutar el Compute Shader
-        glUseProgram(computeProgram);
-        // glUniform2i(glGetUniformLocation(computeProgram, "mousePos"), textureMouseX, textureMouseY);
-        // glUniform1i(glGetUniformLocation(computeProgram, "range"), RANGE);
-        glUniform1i(glGetUniformLocation(computeProgram, "SCR_WIDTH"), SCR_WIDTH);
-        glUniform1i(glGetUniformLocation(computeProgram, "SCR_HEIGHT"), SCR_HEIGHT);
-        glUniform2i(glGetUniformLocation(computeProgram, "lightPos"), lightX, lightY);
-        glUniform1f(glGetUniformLocation(computeProgram, "lightIntensity"), lightIntensity);
-        glUniform4f(glGetUniformLocation(computeProgram, "baseColor"), 0.2f, 0.5f, 0.8f, 1.0f); // Color azul
+        computeShader.setInt("SCR_WIDTH", SCR_WIDTH);
+        computeShader.setInt("SCR_HEIGHT", SCR_HEIGHT);
+        computeShader.setVec2I("lightPos", glm::vec2(lightX, lightY));
+        computeShader.setFloat("lightIntensity", lightIntensity);
+        computeShader.setVec4("baseColor", glm::vec4(0.2f, 0.5f, 0.8f, 1.0f));
+    
         glDispatchCompute((SCR_WIDTH + 15) / 16, (SCR_HEIGHT + 15) / 16, 1);
         glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT);
 
@@ -163,7 +113,7 @@ int main(int argv, char** args) {
     // Limpieza
     glDeleteBuffers(1, &pbo);
     glDeleteTextures(1, &texture);
-    glDeleteProgram(computeProgram);
+    // glDeleteProgram(computeProgram);
     SDL_DestroyTexture(sdlTexture);
     SDL_DestroyRenderer(renderer);
     SDL_GL_DeleteContext(glContext);
@@ -171,4 +121,14 @@ int main(int argv, char** args) {
     SDL_Quit();
 
     return 0;
+}
+
+void setTexture(GLuint& texId) {
+    glGenTextures(1, &texId);
+    glBindTexture(GL_TEXTURE_2D, texId);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glBindImageTexture(0, texId, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
 }
