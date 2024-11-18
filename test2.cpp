@@ -109,6 +109,8 @@ int main(int argv, char** args) {
     glBufferData(GL_PIXEL_PACK_BUFFER, TEXTURE_WIDTH * TEXTURE_HEIGHT * 4 * sizeof(uint8_t), nullptr, GL_STREAM_READ);
     glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
+    GLuint framebuffer;
+    glGenFramebuffers(1, &framebuffer);
 
     // Configura SDL para renderizar
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
@@ -136,9 +138,9 @@ int main(int argv, char** args) {
 		uint64_t currentFrame = SDL_GetPerformanceCounter();
 		deltaTime = static_cast<double>(currentFrame - lastFrame) / frequency;
 		lastFrame = currentFrame;
-        std::cout << "FPS: " << 1 / deltaTime << std::endl;
         // Obtiene la posición del mouse
         while (SDL_PollEvent(&event)) {
+            std::cout << "FPS: " << 1 / deltaTime << std::endl;
             if (event.type == SDL_QUIT) {
                 running = false;
             }
@@ -158,8 +160,6 @@ int main(int argv, char** args) {
         glDispatchCompute(TEXTURE_WIDTH / 16, TEXTURE_HEIGHT / 16, 1);
         glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT);
 
-        GLuint framebuffer;
-        glGenFramebuffers(1, &framebuffer);
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
 
