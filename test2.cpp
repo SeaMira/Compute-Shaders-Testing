@@ -97,10 +97,18 @@ int main(int argv, char** args) {
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glBindImageTexture(0, texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);
+
+    // Configura un PBO para transferencias optimizadas
+    GLuint pbo;
+    glGenBuffers(1, &pbo);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+    glBufferData(GL_PIXEL_PACK_BUFFER, TEXTURE_WIDTH * TEXTURE_HEIGHT * 4 * sizeof(uint8_t), nullptr, GL_STREAM_READ);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+
 
     // Configura SDL para renderizar
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
@@ -117,18 +125,25 @@ int main(int argv, char** args) {
     // Variables del mouse
     int mouseX = 0, mouseY = 0;
 
+    double deltaTime = 0.0f; // time between current frame and last frame
+    double lastFrame = 0.0f;
+
     // Bucle de renderizado
     bool running = true;
     SDL_Event event;
     while (running) {
+        static uint64_t frequency = SDL_GetPerformanceFrequency();
+		uint64_t currentFrame = SDL_GetPerformanceCounter();
+		deltaTime = static_cast<double>(currentFrame - lastFrame) / frequency;
+		lastFrame = currentFrame;
+        std::cout << "FPS: " << 1 / deltaTime << std::endl;
         // Obtiene la posición del mouse
-        SDL_GetMouseState(&mouseX, &mouseY);
         while (SDL_PollEvent(&event)) {
-        std::cout << "mouseX: " << mouseX << std::endl;
             if (event.type == SDL_QUIT) {
                 running = false;
             }
         }
+        SDL_GetMouseState(&mouseX, &mouseY);
         int textureMouseX = (int)(mouseX * scaleX);
         int textureMouseY = (int)(mouseY * scaleY);
 
@@ -143,13 +158,30 @@ int main(int argv, char** args) {
         glDispatchCompute(TEXTURE_WIDTH / 16, TEXTURE_HEIGHT / 16, 1);
         glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT);
 
-        // Leer datos de la textura y actualizarlos en SDL
-        glBindTexture(GL_TEXTURE_2D, texture);
-        Uint8* pixels = new Uint8[TEXTURE_WIDTH * TEXTURE_HEIGHT * 4];
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        GLuint framebuffer;
+        glGenFramebuffers(1, &framebuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
 
-        SDL_UpdateTexture(sdlTexture, nullptr, pixels, TEXTURE_WIDTH * 4);
-        delete[] pixels;
+        // Inicia la transferencia asincrónica con PBO
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+        glReadPixels(0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+        // Mapea los datos del PBO para pasarlos a SDL
+        Uint8* pixels = (Uint8*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+        if (pixels) {
+            SDL_UpdateTexture(sdlTexture, nullptr, pixels, TEXTURE_WIDTH * 4);
+            glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+        }
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+
+        // Leer datos de la textura y actualizarlos en SDL
+        // glBindTexture(GL_TEXTURE_2D, texture);
+        // Uint8* pixels = new Uint8[TEXTURE_WIDTH * TEXTURE_HEIGHT * 4];
+        // glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+        // SDL_UpdateTexture(sdlTexture, nullptr, pixels, TEXTURE_WIDTH * 4);
+        // delete[] pixels;
 
         // Renderiza la textura en SDL
         SDL_RenderClear(renderer);
@@ -162,6 +194,7 @@ int main(int argv, char** args) {
     SDL_DestroyRenderer(renderer);
     glDeleteTextures(1, &texture);
     glDeleteProgram(computeProgram);
+    glDeleteBuffers(1, &pbo);
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);
     SDL_Quit();
