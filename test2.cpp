@@ -1,6 +1,5 @@
 #include <iostream>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_main.h>
+#include <SDL3/SDL.h>
 #include <glad/glad.h>
 
 // Configuración de la ventana y la textura
@@ -24,9 +23,8 @@ int main(int argv, char** args) {
 
     // Crea una ventana de SDL
     SDL_Window* window = SDL_CreateWindow("Mouse Pixel Highlighter", 
-                                          SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
                                           SCR_WIDTH, SCR_HEIGHT, 
-                                          SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+                                          SDL_WINDOW_OPENGL );
     if (!window) {
         std::cerr << "Failed to create SDL window: " << SDL_GetError() << std::endl;
         SDL_Quit();
@@ -45,7 +43,7 @@ int main(int argv, char** args) {
     // Inicializa GLAD
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
         std::cerr << "Failed to initialize GLAD" << std::endl;
-        SDL_GL_DeleteContext(glContext);
+        SDL_GL_DestroyContext(glContext);
         SDL_DestroyWindow(window);
         SDL_Quit();
         return -1;
@@ -113,7 +111,7 @@ int main(int argv, char** args) {
     glGenFramebuffers(1, &framebuffer);
 
     // Configura SDL para renderizar
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
     SDL_Texture* sdlTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, 
                                                  SDL_TEXTUREACCESS_STREAMING, 
                                                  TEXTURE_WIDTH, TEXTURE_HEIGHT);
@@ -125,7 +123,7 @@ int main(int argv, char** args) {
     float scaleY = (float)TEXTURE_HEIGHT / (float)windowHeight;
 
     // Variables del mouse
-    int mouseX = 0, mouseY = 0;
+    float mouseX = 0.0f, mouseY = 0.0f;
 
     double deltaTime = 0.0f; // time between current frame and last frame
     double lastFrame = 0.0f;
@@ -141,7 +139,7 @@ int main(int argv, char** args) {
         // Obtiene la posición del mouse
         while (SDL_PollEvent(&event)) {
             std::cout << "FPS: " << 1 / deltaTime << std::endl;
-            if (event.type == SDL_QUIT) {
+            if (event.type == SDL_EVENT_QUIT) {
                 running = false;
             }
         }
@@ -185,7 +183,7 @@ int main(int argv, char** args) {
 
         // Renderiza la textura en SDL
         SDL_RenderClear(renderer);
-        SDL_RenderCopy(renderer, sdlTexture, nullptr, nullptr);
+        SDL_RenderTexture(renderer, sdlTexture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
     }
 
@@ -195,7 +193,7 @@ int main(int argv, char** args) {
     glDeleteTextures(1, &texture);
     glDeleteProgram(computeProgram);
     glDeleteBuffers(1, &pbo);
-    SDL_GL_DeleteContext(glContext);
+    SDL_GL_DestroyContext(glContext);
     SDL_DestroyWindow(window);
     SDL_Quit();
 

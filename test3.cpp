@@ -1,6 +1,5 @@
 #include <iostream>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_main.h>
+#include <SDL3/SDL.h>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <cstring> 
@@ -26,8 +25,8 @@ int main(int argv, char** args) {
     }
 
     // Crear ventana y contexto OpenGL
-    SDL_Window* window = SDL_CreateWindow("Compute Shader + SDL Renderer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                          SCR_WIDTH, SCR_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+    SDL_Window* window = SDL_CreateWindow("Compute Shader + SDL Renderer",
+                                          SCR_WIDTH, SCR_HEIGHT, SDL_WINDOW_OPENGL);
     SDL_GLContext glContext = SDL_GL_CreateContext(window);
     gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
 
@@ -50,13 +49,13 @@ int main(int argv, char** args) {
     glGenFramebuffers(1, &framebuffer);
 
     // Configurar textura SDL
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
     SDL_Texture* sdlTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING,
                                                  SCR_WIDTH, SCR_HEIGHT);
 
     bool running = true;
     SDL_Event event;
-    int mouseX = 0, mouseY = 0;
+    float mouseX = 0.0f, mouseY = 0.0f;
 
     while (running) {
 
@@ -67,13 +66,13 @@ int main(int argv, char** args) {
 
         while (SDL_PollEvent(&event)) {
             std::cout << "FPS: " << 1 / deltaTime << std::endl;
-            if (event.type == SDL_QUIT) running = false;
+            if (event.type == SDL_EVENT_QUIT) running = false;
         }
 
         // Obtener posición del mouse
         SDL_GetMouseState(&mouseX, &mouseY);
-        int textureMouseX = mouseX;
-        int textureMouseY = SCR_HEIGHT - mouseY;
+        int textureMouseX = (int)mouseX;
+        int textureMouseY = SCR_HEIGHT - (int)mouseY;
 
         int lightX = mouseX; // Mueve la luz con el mouse
         int lightY = mouseY;
@@ -106,7 +105,7 @@ int main(int argv, char** args) {
 
         // Renderizar la textura con SDL
         SDL_RenderClear(renderer);
-        SDL_RenderCopy(renderer, sdlTexture, nullptr, nullptr);
+        SDL_RenderTexture(renderer, sdlTexture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
     }
 
@@ -116,7 +115,7 @@ int main(int argv, char** args) {
     // glDeleteProgram(computeProgram);
     SDL_DestroyTexture(sdlTexture);
     SDL_DestroyRenderer(renderer);
-    SDL_GL_DeleteContext(glContext);
+    SDL_GL_DestroyContext(glContext);
     SDL_DestroyWindow(window);
     SDL_Quit();
 

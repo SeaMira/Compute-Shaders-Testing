@@ -3,7 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glad/glad.h>
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include "camera3.h"
 #include "shader_m.h"
 #include "shader_c.h"
@@ -35,9 +35,8 @@ int main(int argc, char* argv[]) {
 
     // Create SDL2 window
     SDL_Window* window = SDL_CreateWindow("Compute Shader Demo", 
-                                          SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
                                           SCR_WIDTH, SCR_HEIGHT, 
-                                          SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+                                          SDL_WINDOW_OPENGL);
     if (!window) {
         std::cerr << "Failed to create SDL2 window: " << SDL_GetError() << std::endl;
         SDL_Quit();
@@ -56,7 +55,7 @@ int main(int argc, char* argv[]) {
     // Load OpenGL functions using GLAD
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
         std::cerr << "Failed to initialize GLAD" << std::endl;
-        SDL_GL_DeleteContext(glContext);
+        SDL_GL_DestroyContext(glContext);
         SDL_DestroyWindow(window);
         SDL_Quit();
         return -1;
@@ -125,7 +124,7 @@ int main(int argc, char* argv[]) {
         }
 
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
+            if (event.type == SDL_EVENT_QUIT) {
                 running = false;
             }
         }
@@ -146,7 +145,7 @@ int main(int argc, char* argv[]) {
     glDeleteTextures(1, &texture);
     glDeleteProgram(screenQuad.ID);
     glDeleteProgram(computeShader.ID);
-    SDL_GL_DeleteContext(glContext);
+    SDL_GL_DestroyContext(glContext);
     SDL_DestroyWindow(window);
     SDL_Quit();
 
