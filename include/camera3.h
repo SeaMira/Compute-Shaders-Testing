@@ -2,6 +2,7 @@
 #define _CAMERA_H_
 
 #include <glm/glm.hpp>
+#include <iostream>
 #include "glm/common.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
@@ -33,11 +34,16 @@ public:
 
     glm::vec3 getPosition();
     glm::vec3 getFront();
+    glm::vec3 getUp();
+    glm::vec3 getRight();
 
     glm::mat4 getProjection();
     glm::mat4 getOrthographic(float left, float right, float bottom, float top, float near, float far);
     glm::mat4 getView();
     glm::mat4 getModel();
+    float getFov();
+    float getYaw();
+    float getPitch();
 
 
     bool firstMouse = true;
@@ -50,7 +56,7 @@ public:
     float SCR_HEIGHT;
 
     float MARGIN = 20.0f;
-    float EDGE_STEP = 10.0f;
+    float EDGE_STEP = 70.0f;
 
 
 private:

@@ -11,7 +11,7 @@ Camera::Camera(int SCR_WIDTH, int SCR_HEIGHT, const glm::vec3 Pos, const glm::ve
     this->SCR_WIDTH = SCR_WIDTH;
     this->SCR_HEIGHT = SCR_HEIGHT;
     this->lastX = (float)SCR_WIDTH/2.0f;
-    this->SCR_HEIGHT = (float)SCR_HEIGHT/2.0f;
+    this->lastY = (float)SCR_HEIGHT/2.0f;
 
     this->cameraPos = Pos;
     this->cameraFront = Front;
@@ -24,6 +24,14 @@ glm::vec3 Camera::getPosition() {
 
 glm::vec3 Camera::getFront() {
     return cameraFront;
+}
+
+glm::vec3 Camera::getUp() {
+    return cameraUp;
+}
+
+glm::vec3 Camera::getRight() {
+    return glm::normalize(glm::cross(cameraFront, cameraUp));
 }
 
 glm::mat4 Camera::getProjection() {
@@ -41,6 +49,18 @@ glm::mat4 Camera::getOrthographic(float left, float right, float bottom, float t
 // hasta que no se necesite ningún cambio solo retornará la identidad
 glm::mat4 Camera::getModel() {
     return glm::mat4(1.0f);
+}
+
+float Camera::getFov() {
+    return fov;
+}
+
+float Camera::getPitch() {
+    return pitch;
+}
+
+float Camera::getYaw() {
+    return yaw;
 }
 
 void Camera::SetPosition(float x, float y, float z) {
@@ -83,47 +103,47 @@ void Camera::OnKeyboard(int key, float dt) {
     float cameraSpeed = static_cast<float>(mSpeed * dt);
     switch (key) {
         // W
-        case 1:
+        case 'w':
         {
             cameraPos += cameraSpeed * cameraFront;
         }
         break;
         // S
-        case 2:
+        case 's':
         {
             cameraPos -= cameraSpeed * cameraFront;
         }
         break;
         // A
-        case 3:
+        case 'a':
         {
             cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
         }
         break;
         // D
-        case 4:
+        case 'd':
         {
             cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
         }
         break;
         // SPACE
-        case 5:
+        case ' ':
         {
             cameraPos +=  initCameraUp* cameraSpeed;
         }
         break;
         // LEFT_SHIFT
-        case 6: 
+        case 'l': 
         {
             cameraPos -=  initCameraUp* cameraSpeed;
         }
         break;
-        case 7: 
+        case 'e': 
         {
             mSpeed +=  1.0f;
         }
         break;
-        case 8: 
+        case 'q': 
         {
             mSpeed -=  1.0f;
             mSpeed = std::max(1.0f, mSpeed);
@@ -133,6 +153,7 @@ void Camera::OnKeyboard(int key, float dt) {
 }
 
 void Camera::OnMouse(float x, float y) {
+
     float xpos = x;
     float ypos = y;
 
@@ -140,6 +161,8 @@ void Camera::OnMouse(float x, float y) {
     {
         lastX = xpos;
         lastY = ypos;
+        yaw   = 90.0f;
+        pitch =  -45.0f;
         firstMouse = false;
     }
 
@@ -194,6 +217,9 @@ void Camera::OnMouse(float x, float y) {
     // front.y = sin(glm::radians(pitch));
     // front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront = glm::normalize(front);
+
+    glm::vec3 right = glm::normalize(glm::cross(cameraFront, glm::vec3(0.0f, 0.0f, 1.0f))); // Right vector
+    cameraUp = glm::normalize(glm::cross(right, cameraFront));
 }
 
 void Camera::OnRender(float dt) {
@@ -234,6 +260,8 @@ void Camera::OnRender(float dt) {
         // front.y = sin(glm::radians(pitch));
         // front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
         cameraFront = glm::normalize(front);
+        glm::vec3 right = glm::normalize(glm::cross(cameraFront, glm::vec3(0.0f, 0.0f, 1.0f))); // Right vector
+        cameraUp = glm::normalize(glm::cross(right, cameraFront));
     }
     
 }
