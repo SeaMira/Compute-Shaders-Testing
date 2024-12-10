@@ -17,6 +17,7 @@ add_executable(test3 "test3.cpp")
 add_executable(test4 "test4.cpp")
 add_executable(test5 "test5.cpp")
 add_executable(test6 "test6_camera.cpp")
+add_executable(test7 "test7_secuencial.cpp")
 
 target_link_libraries(CS_dependencies PUBLIC  glad glm)
 
@@ -26,6 +27,7 @@ target_link_libraries(test3 PUBLIC CS_dependencies SDL3 glad)
 target_link_libraries(test4 PUBLIC CS_dependencies SDL3 glad)
 target_link_libraries(test5 PUBLIC CS_dependencies SDL3 glad)
 target_link_libraries(test6 PUBLIC CS_dependencies SDL3 glad)
+target_link_libraries(test7 PUBLIC CS_dependencies SDL3 glad)
 
 target_include_directories(main PUBLIC ${OPENGL_INCLUDE_DIRS} ${SDL3_INCLUDE_DIRS})
 target_include_directories(test2 PUBLIC ${OPENGL_INCLUDE_DIRS} ${SDL3_INCLUDE_DIRS})
@@ -33,3 +35,4 @@ target_include_directories(test3 PUBLIC ${OPENGL_INCLUDE_DIRS} ${SDL3_INCLUDE_DI
 target_include_directories(test4 PUBLIC ${OPENGL_INCLUDE_DIRS} ${SDL3_INCLUDE_DIRS})
 target_include_directories(test5 PUBLIC ${OPENGL_INCLUDE_DIRS} ${SDL3_INCLUDE_DIRS})
 target_include_directories(test6 PUBLIC ${OPENGL_INCLUDE_DIRS} ${SDL3_INCLUDE_DIRS})
+target_include_directories(test7 PUBLIC ${OPENGL_INCLUDE_DIRS} ${SDL3_INCLUDE_DIRS})
