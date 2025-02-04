@@ -98,7 +98,7 @@ int main(int argv, char** args) {
                 camera.OnScroll(event.wheel.y);
             }
         }
-        std::cout << camera.getYaw() << ", " << camera.getPitch() << std::endl; 
+        //std::cout << camera.getYaw() << ", " << camera.getPitch() << std::endl; 
         
          // Obtener el estado de todas las teclas (mover la cámara si las teclas están presionadas)
         const bool* state = SDL_GetKeyboardState(NULL);

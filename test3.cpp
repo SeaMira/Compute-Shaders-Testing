@@ -65,7 +65,7 @@ int main(int argv, char** args) {
 		lastFrame = currentFrame;
 
         while (SDL_PollEvent(&event)) {
-            std::cout << "FPS: " << 1 / deltaTime << std::endl;
+            //std::cout << "FPS: " << 1 / deltaTime << std::endl;
             if (event.type == SDL_EVENT_QUIT) running = false;
         }
 
